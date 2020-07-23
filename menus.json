@@ -1,0 +1,27 @@
+[
+  {
+    "path": "/dashboard",
+    "menu": {
+      "name": "监控页",
+      "icon": "dashboard",
+      "hideChildMenu": false
+    }
+  },
+  {
+    "path": "/",
+    "menu": {
+      "name": "首页",
+      "icon": "home"
+    },
+    "routes": [
+      {
+        "path": "/link",
+        "menu": {
+          "name": "链接",
+          "icon": "link",
+          "hideChildMenu": true
+        }
+      }
+    ]
+  }
+]
