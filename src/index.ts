@@ -1,30 +1,21 @@
 // ref:
 // - https://umijs.org/plugins/api
 import { utils, IApi, IRoute, IConfig } from 'umi';
-import fs from 'fs';
+import fs, { readFileSync } from 'fs';
 import path from 'path';
+import { cloneDeep, compact, isEmpty, isArray, set, omit, unset } from 'lodash';
 import {
-  cloneDeep,
-  orderBy,
-  compact,
-  map,
-  isEmpty,
-  isArray,
-  set,
-  omit,
-  unset,
-} from 'lodash';
-import { RELATIVE_MODEL_PATH } from './constants';
-import getModelContent from './getModelContent';
-const { winPath, signale } = utils;
+  RELATIVE_MODEL_PATH,
+  RELATIVE_RUNTIOME_PATH,
+  CUSTOM_EVENT_NAME,
+} from './constants';
+const { winPath, signale, Mustache } = utils;
 const { join } = path;
-
-type orderOptions = 'asc' | 'desc';
 
 interface defaultConfigOptions {
   build: string;
+  isGenerate: boolean;
   excludes: string[];
-  order: [string[], orderOptions[]];
 }
 
 const recursiveAnalysis = (
@@ -32,34 +23,37 @@ const recursiveAnalysis = (
   parent: IRoute,
   opts: defaultConfigOptions,
 ) => {
-  const { excludes, order } = opts;
+  const { excludes } = opts;
 
-  return orderBy(
-    compact(
-      map(routes, route => {
-        const { path, routes } = route;
-        if (!!route.menu && (!isEmpty(path) || !isEmpty(routes))) {
-          if (isArray(routes)) {
-            if (route.menu.hideChildMenu) {
-              unset(route, ['routes']);
-            } else {
-              set(route, ['routes'], recursiveAnalysis(routes, route, opts));
-            }
-          }
+  const arr: IRoute[] = [];
 
-          return omit(route, excludes);
+  routes.forEach(route => {
+    const { path, routes: localRoutes, menu, flatMenu } = route;
+    if (!!menu && (!isEmpty(path) || !isEmpty(localRoutes))) {
+      if (flatMenu) {
+        if (isArray(localRoutes)) {
+          const childrenRoutes = recursiveAnalysis(localRoutes, route, opts);
+          arr.push(...childrenRoutes);
         }
-        return void 0;
-      }),
-    ),
-    ...order,
-  );
+      } else {
+        if (isArray(localRoutes)) {
+          if (menu.hideChildMenu) {
+            unset(route, ['routes']);
+          } else {
+            set(route, ['routes'], recursiveAnalysis(localRoutes, route, opts));
+          }
+        }
+        arr.push(omit(route, excludes));
+      }
+    }
+  });
+  return compact(arr);
 };
 
 const defaultOptions: defaultConfigOptions = {
   build: path.resolve('.', './menus.json'),
+  isGenerate: false,
   excludes: ['exact', 'component', 'Routes'],
-  order: [['order'], ['asc']],
 };
 
 let routesCache: IRoute[];
@@ -84,19 +78,40 @@ export default function(api: IApi, options: IConfig) {
       interactive.await('[%d/3] - analysis routes...', 1);
       const tree = recursiveAnalysis(_routes, {}, opts);
 
-      interactive.await('[%d/3] - build menus file...', 2);
-      fs.writeFileSync(opts.build, JSON.stringify(tree, null, 2));
+      interactive.await('[%d/3] - build menus model...', 2);
+      if (opts.isGenerate) {
+        fs.writeFileSync(opts.build, JSON.stringify(tree, null, 2));
+      }
 
       if (useModel) {
+        const modalTpl = readFileSync(
+          join(__dirname, 'modelContent.tsx.tpl'),
+          'utf-8',
+        );
         api.writeTmpFile({
           path: RELATIVE_MODEL_PATH,
-          content: getModelContent(tree),
+          content: Mustache.render(modalTpl, {
+            menus: JSON.stringify(tree),
+            eventName: CUSTOM_EVENT_NAME,
+          }),
         });
       }
 
-      interactive.success('[%d/3] - build menus file done!', 3);
+      interactive.success('[%d/3] - build menus model done!', 3);
     }
     return routes;
+  });
+
+  api.onGenerateFiles(() => {
+    api.writeTmpFile({
+      path: RELATIVE_RUNTIOME_PATH,
+      content: Mustache.render(
+        readFileSync(join(__dirname, 'runtime.tsx.tpl'), 'utf-8'),
+        {
+          eventName: CUSTOM_EVENT_NAME,
+        },
+      ),
+    });
   });
 
   if (useModel) {
@@ -110,4 +125,6 @@ export default function(api: IApi, options: IConfig) {
       ],
     });
   }
+
+  api.addRuntimePlugin(() => [`@@/${RELATIVE_RUNTIOME_PATH}`]);
 }

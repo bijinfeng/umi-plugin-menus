@@ -1,12 +1,16 @@
 {
-  "name": "umi-plugin-menus",
+  "name": "@bijinfeng/umi-plugin-menus",
   "main": "lib/index.js",
-  "description": "",
+  "version": "0.0.1",
+  "description": "[![NPM version](https://img.shields.io/npm/v/umi-plugin-menus.svg?style=flat)](https://npmjs.org/package/umi-plugin-menus) [![NPM downloads](http://img.shields.io/npm/dm/umi-plugin-menus.svg?style=flat)](https://npmjs.org/package/umi-plugin-menus)",
   "authors": {
     "name": "bijinfeng",
     "email": "2804673379@qq.com"
   },
-  "repository": "/umi-plugin-menus",
+  "repository": {
+    "type": "git",
+    "url": "/umi-plugin-menus"
+  },
   "scripts": {
     "start": "cross-env APP_ROOT=example umi dev",
     "build": "father-build",
@@ -57,5 +61,14 @@
   },
   "files": [
     "lib"
-  ]
+  ],
+  "directories": {
+    "example": "example",
+    "lib": "lib",
+    "test": "test"
+  },
+  "dependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

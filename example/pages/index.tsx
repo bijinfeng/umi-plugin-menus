@@ -4,15 +4,13 @@ import styles from './index.css';
 import { useModel } from 'umi';
 
 export default ({ children }: any) => {
-  const menus = useModel('@@menus');
-  console.log(menus);
+  const { menus, matchRoute } = useModel('@@menus');
+  console.log(menus, matchRoute);
 
-  const d = useModel('useDemo');
-  console.log(d);
   return (
     <div className={styles.normal}>
       Hello Umi!
-      { children }
+      {children}
     </div>
-  )
+  );
 };
